@@ -26,11 +26,13 @@ export async function handleRest(
   const send = (data: any, code = 200) => {
     res.statusCode = code;
     res.end(JSON.stringify(data));
+    return true;
   };
 
   const error = (msg: string, code = 422) => {
     res.statusCode = code;
     res.end(JSON.stringify({ message: msg }));
+    return true;
   };
 
   const getBody = (): Promise<any> => {
@@ -74,7 +76,7 @@ export async function handleRest(
       if (method === 'GET') {
         const perPage = parseInt(url.searchParams.get('per_page') || '30', 10);
         const page = parseInt(url.searchParams.get('page') || '1', 10);
-        const all = registry.listRepos(token);
+        const all = registry.listRepos();
         const start = (page - 1) * perPage;
         const slice = all.slice(start, start + perPage);
         if (all.length > start + perPage) {
@@ -102,19 +104,15 @@ export async function handleRest(
     if (sub[0] === 'repos' && sub[1] && sub[2]) {
       const owner = sub[1];
       const name = sub[2];
-      if (owner !== token) {
-        res.statusCode = 404;
-        res.end(JSON.stringify({ message: 'Not Found' }));
-        return true;
-      }
-      let repo = registry.repos.get(`${owner}/${name}`);
+      let repo = registry.findRepo(owner, name);
 
       // If PUT contents and repo doesn't exist, create it (unborn repo accepted)
       if (!repo && sub[3] === 'contents' && method === 'PUT') {
         try {
-          repo = registry.createRepo(owner, name);
+          registry.createRepo(name);
+          repo = registry.findRepo(owner, name);
         } catch (e) {
-          repo = registry.repos.get(`${owner}/${name}`);
+          repo = registry.findRepo(owner, name);
         }
       }
 
@@ -133,7 +131,13 @@ export async function handleRest(
           return send(formatRepo(host, repo));
         }
         if (method === 'DELETE') {
+          if (repo.owner !== owner) {
+            res.statusCode = 404;
+            res.end(JSON.stringify({ message: 'Not Found' }));
+            return true;
+          }
           registry.repos.delete(`${owner}/${name}`);
+          registry.pendingRepos.delete(name);
           res.statusCode = 204;
           res.end();
           return true;
