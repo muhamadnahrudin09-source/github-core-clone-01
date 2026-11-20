@@ -51,7 +51,7 @@ export async function handleRest(
 
   try {
     const host = req.headers.host || 'localhost';
-    const url = new URL(path, `http://${host}`);
+    const url = new URL(req.url ?? path, `http://${host}`);
     const parts = url.pathname.split('/').filter(Boolean); // api, v3, ...
 
     if (parts[0] !== 'api' || parts[1] !== 'v3') return false;
@@ -334,7 +334,8 @@ export async function handleRest(
             let list = repo.issues.filter(i => state === 'all' || i.state === state);
             list.sort((a, b) => {
               const res = a.createdAt - b.createdAt;
-              return direction === 'desc' ? -res : res;
+              if (res !== 0) return direction === 'desc' ? -res : res;
+              return direction === 'desc' ? b.number - a.number : a.number - b.number;
             });
             return send(list.map(i => formatIssue(host, repo, i)));
           }
@@ -469,6 +470,10 @@ export async function handleRest(
     error('Not Found', 404);
     return true;
   } catch (e: any) {
+    if (e instanceof SyntaxError || /Malformed|JSON/.test(e.message || '')) {
+      error('Malformed JSON body', 400);
+      return true;
+    }
     console.error(e);
     error(e.message || 'Internal Server Error', 500);
     return true;
@@ -515,7 +520,10 @@ function formatPull(host: string, repo: RepoRecord, p: any) {
     base: { ref: p.base.ref, sha: p.base.sha },
     merged: p.merged,
     merged_at: p.mergedAt,
+    merge_commit_sha: p.mergeCommitSha ?? null,
     mergeable: true,
+    commits: 1,
+    changed_files: 1,
     html_url: `http://${host}/repos/${repo.owner}/${repo.name}/pull/${p.number}`
   };
 }
