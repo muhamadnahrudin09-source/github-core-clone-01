@@ -8,8 +8,10 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { registry } from './repos.ts';
 import { handleGitHttp } from './githttp.ts';
+import { handleRest } from './rest.ts';
 
 const JSON_TYPE = 'application/json; charset=utf-8';
+const TOKEN = process.env.MAKEFUN_SHOP_TOKEN ?? 'testtoken123';
 
 /** Answer one request with a JSON body; `headers` go beside the JSON ones. */
 function sendJson(res: ServerResponse, status: number, body: unknown, headers: Readonly<Record<string, string>> = {}): void {
@@ -39,10 +41,10 @@ export function createApp(): Server {
       return;
     }
 
-    // The GitHub API root: a 200 with the token's scopes, as api.github.com answers GET /.
-    if (method === 'GET' && (path === '/api/v3' || path === '/api/v3/')) {
-      sendJson(res, 200, { current_user_url: '/api/v3/user', rate_limit_url: '/api/v3/rate_limit' }, { 'x-oauth-scopes': 'repo, read:org' });
-      return;
+    if (path.startsWith('/api/v3')) {
+      if (await handleRest(req, res, path, method, registry, TOKEN)) {
+        return;
+      }
     }
 
     // Git routes

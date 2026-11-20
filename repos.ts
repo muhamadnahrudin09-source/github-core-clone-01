@@ -7,6 +7,17 @@ export interface RepoRecord {
   description: string;
   privateFlag: boolean;
   git: Store;
+  labels: Map<string, { name: string; color: string }>;
+  issues: { number: number; title: string; body: string; state: 'open' | 'closed'; labels: string[] }[];
+  pulls: {
+    number: number;
+    title: string;
+    head: { ref: string; sha: string };
+    base: { ref: string; sha: string };
+    state: 'open' | 'closed';
+    mergeable: boolean;
+  }[];
+  counter: number;
 }
 
 export class Registry {
@@ -15,7 +26,17 @@ export class Registry {
   createRepo(owner: string, name: string): RepoRecord {
     const id = `${owner}/${name}`;
     const git = new Store(join('data', 'repos', `${owner}-${name}`));
-    const repo: RepoRecord = { owner, name, description: '', privateFlag: false, git };
+    const repo: RepoRecord = {
+      owner,
+      name,
+      description: '',
+      privateFlag: false,
+      git,
+      labels: new Map(),
+      issues: [],
+      pulls: [],
+      counter: 1,
+    };
     this.repos.set(id, repo);
     return repo;
   }
