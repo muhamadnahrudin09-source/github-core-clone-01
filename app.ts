@@ -52,7 +52,8 @@ export function createApp(): Server {
       const repoRecord = registry.findRepo(owner, repo);
       if (repoRecord) {
         const repoId = `${repoRecord.owner}/${repoRecord.name}`;
-        const service = req.url?.includes('service=git-receive-pack') ? 'git-receive-pack' : 'git-upload-pack';
+        const service = subpath === 'git-receive-pack' || /service=git-receive-pack/.test(req.url ?? '')
+          ? 'git-receive-pack' : 'git-upload-pack';
         await handleGitHttp(repoId, subpath, service, req, res, repoRecord.git);
         return; // githttp always answers (404 included) once the repo is found
       }
