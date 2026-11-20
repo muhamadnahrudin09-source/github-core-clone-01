@@ -1,7 +1,7 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
 import { Registry } from './repos.ts';
 import { sendJson } from './http-utils.ts';
-import { Store, Sha, GitObjectType } from './gitcore.ts';
+import { Store, type Sha, type GitObjectType } from './gitcore.ts';
 
 function getPathContent(store: Store, treeSha: Sha, path: string): {mode: string, name: string, sha: Sha} | null {
   const parts = path.split('/').filter(p => p !== '');
