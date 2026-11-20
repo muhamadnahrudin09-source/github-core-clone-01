@@ -40,7 +40,7 @@ export function createApp(): Server {
         sendJson(res, 401, { message: 'Requires authentication' });
         return;
       }
-      if (await handleRest(req, res, path, method, registry)) {
+      if (await handleRest(req, res, path, method, registry, TOKEN)) {
         return;
       }
     }
