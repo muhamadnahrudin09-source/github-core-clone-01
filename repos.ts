@@ -6,6 +6,7 @@ export interface RepoRecord {
   name: string;
   description: string;
   privateFlag: boolean;
+  defaultBranch: string;
   git: Store;
   labels: Map<string, { name: string; color: string }>;
   issues: { number: number; title: string; body: string; state: 'open' | 'closed'; labels: string[] }[];
@@ -31,6 +32,7 @@ export class Registry {
       name,
       description: '',
       privateFlag: false,
+      defaultBranch: 'main',
       git,
       labels: new Map(),
       issues: [],

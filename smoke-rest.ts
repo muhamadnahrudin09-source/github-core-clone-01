@@ -1,26 +1,53 @@
-import { createApp } from './app.ts';
-import { IncomingMessage, ServerResponse } from 'node:http';
+import { spawn } from 'node:child_process';
+import { request } from 'node:http';
 
-async function run() {
-    const server = createApp();
-    const port = await new Promise<number>(resolve => {
-        server.listen(0, () => resolve((server.address() as any).port));
+async function httpRequest(method: string, path: string, data: any = null, token: string = 'testtoken123'): Promise<{status: number, data: any}> {
+    return new Promise((resolve, reject) => {
+        const req = request(`http://localhost:3000${path}`, {
+            method: method,
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+        }, res => {
+            let body = '';
+            res.on('data', chunk => body += chunk);
+            res.on('end', () => resolve({ status: res.statusCode!, data: body ? JSON.parse(body) : null }));
+        });
+        req.on('error', reject);
+        if (data) req.write(JSON.stringify(data));
+        req.end();
     });
-    console.log(`Server listening on port ${port}`);
-
-    // Test 1: Health check
-    const res1 = await fetch(`http://localhost:${port}/healthz`);
-    console.log('Health:', res1.status, await res1.json());
-
-    // Test 2: API root (unauth)
-    const res2 = await fetch(`http://localhost:${port}/api/v3`);
-    console.log('API root (unauth):', res2.status, await res2.json());
-
-    // Test 3: API root (auth)
-    const res3 = await fetch(`http://localhost:${port}/api/v3`, { headers: { 'Authorization': 'Bearer testtoken123' } });
-    console.log('API root (auth):', res3.status, await res3.json());
-    console.log('Scopes:', res3.headers.get('x-oauth-scopes'));
-
-    server.close();
 }
-run();
+
+async function main() {
+    const server = spawn('node', ['--experimental-strip-types', 'main.ts'], { 
+        env: { ...process.env, MAKEFUN_SHOP_TOKEN: 'testtoken123' },
+        stdio: 'inherit'
+    });
+    
+    // Give it a moment to boot
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // 1. Create Repo
+    await httpRequest('POST', '/api/v3/user/repos', { name: 'testrepo' });
+    
+    // 2. PUT file
+    const putRes = await httpRequest('PUT', '/api/v3/repos/user/testrepo/contents/test.txt', {
+        message: 'Add test.txt',
+        content: Buffer.from('hello').toString('base64')
+    });
+    console.log('PUT test.txt:', putRes.status);
+    
+    // 3. GET file
+    const getRes = await httpRequest('GET', '/api/v3/repos/user/testrepo/contents/test.txt');
+    console.log('GET test.txt:', getRes.status, getRes.data.content);
+    
+    // 4. DELETE file
+    const deleteRes = await httpRequest('DELETE', '/api/v3/repos/user/testrepo/contents/test.txt', {
+        message: 'Delete test.txt',
+        sha: getRes.data.sha
+    });
+    console.log('DELETE test.txt:', deleteRes.status);
+    
+    server.kill();
+}
+
+main();

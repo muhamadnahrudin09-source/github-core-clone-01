@@ -9,16 +9,9 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { registry } from './repos.ts';
 import { handleGitHttp } from './githttp.ts';
 import { handleRest } from './rest.ts';
+import { sendJson } from './http-utils.ts';
 
-const JSON_TYPE = 'application/json; charset=utf-8';
 const TOKEN = process.env.MAKEFUN_SHOP_TOKEN ?? 'testtoken123';
-
-/** Answer one request with a JSON body; `headers` go beside the JSON ones. */
-function sendJson(res: ServerResponse, status: number, body: unknown, headers: Readonly<Record<string, string>> = {}): void {
-  const text = `${JSON.stringify(body)}\n`;
-  res.writeHead(status, { 'content-type': JSON_TYPE, 'content-length': Buffer.byteLength(text), ...headers });
-  res.end(text);
-}
 
 /** The path of a request URL, or '/' when it does not parse (never a throw from a request). */
 function pathOf(req: IncomingMessage): string {
@@ -42,7 +35,12 @@ export function createApp(): Server {
     }
 
     if (path.startsWith('/api/v3')) {
-      if (await handleRest(req, res, path, method, registry, TOKEN)) {
+      const auth = req.headers['authorization'];
+      if (auth !== `Bearer ${TOKEN}`) {
+        sendJson(res, 401, { message: 'Requires authentication' });
+        return;
+      }
+      if (await handleRest(req, res, path, method, registry)) {
         return;
       }
     }
