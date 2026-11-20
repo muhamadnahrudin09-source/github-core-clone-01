@@ -49,12 +49,12 @@ export function createApp(): Server {
     const repoMatch = path.match(/^\/([^/]+)\/([^/]+)\.git\/(.+)$/);
     if (repoMatch) {
       const [_, owner, repo, subpath] = repoMatch;
-      const repoId = `${owner}/${repo}`;
-      const repoRecord = registry.repos.get(repoId);
+      const repoRecord = registry.findRepo(owner, repo);
       if (repoRecord) {
+        const repoId = `${repoRecord.owner}/${repoRecord.name}`;
         const service = req.url?.includes('service=git-receive-pack') ? 'git-receive-pack' : 'git-upload-pack';
         await handleGitHttp(repoId, subpath, service, req, res, repoRecord.git);
-        return;
+        return; // githttp always answers (404 included) once the repo is found
       }
     }
 
