@@ -9,6 +9,8 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { registry } from './repos.ts';
 import { handleGitHttp } from './githttp.ts';
 import { handleRest } from './rest.ts';
+import { handleGraphQL } from './gql.ts';
+import { handleMcp } from './mcp.ts';
 import { sendJson } from './http-utils.ts';
 
 const TOKEN = process.env.MAKEFUN_SHOP_TOKEN ?? 'testtoken123';
@@ -43,6 +45,13 @@ export function createApp(): Server {
       if (await handleRest(req, res, path, method, registry, TOKEN)) {
         return;
       }
+    }
+
+    if (await handleMcp(req, res, TOKEN)) {
+      return;
+    }
+    if (await handleGraphQL(req, res, registry, TOKEN)) {
+      return;
     }
 
     // Git routes

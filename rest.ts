@@ -543,7 +543,7 @@ async function resolvePath(git: any, treeSha: Sha, parts: string[]): Promise<any
   return { mode: '40000', name: '', sha: treeSha };
 }
 
-async function updateTree(git: any, treeSha: Sha, parts: string[], blobSha: Sha | null): Promise<Sha> {
+export async function updateTree(git: any, treeSha: Sha, parts: string[], blobSha: Sha | null): Promise<Sha> {
   if (parts.length === 0) return blobSha || '';
 
   const entries = treeSha ? git.parseTree(git.read(treeSha)!.data) : [];
@@ -568,7 +568,7 @@ async function updateTree(git: any, treeSha: Sha, parts: string[], blobSha: Sha 
   }
 }
 
-async function getTreeFiles(git: any, treeSha: Sha, prefix = ''): Promise<{ path: string, content: string }[]> {
+export async function getTreeFiles(git: any, treeSha: Sha, prefix = ''): Promise<{ path: string, content: string }[]> {
   if (!treeSha) return [];
   const obj = git.read(treeSha);
   if (!obj || obj.type !== 'tree') return [];
