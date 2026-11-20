@@ -89,7 +89,7 @@ export async function handleRest(
         const body = await getBody();
         if (!body || !body.name) return error('Name is required');
         try {
-          const repo = registry.createRepo(token, body.name, body.description || '', body.private || false);
+          const repo = registry.createRepo(body.name, body.description || "", body.private || false);
           send(formatRepo(host, repo), 201);
         } catch (e) {
           return error('Repository already exists');
