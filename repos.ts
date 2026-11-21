@@ -32,7 +32,24 @@ export interface RepoRecord {
     baseShaAtOpen: string;
     headFiles: { path: string; content: string }[];
   }[];
+  hooks: {
+    id: number;
+    name: string;
+    active: boolean;
+    events: string[];
+    config: {
+      url: string;
+      content_type: string;
+    };
+    updated_at: string;
+    created_at: string;
+    ping_deliveries: {
+      id: number;
+      created_at: string;
+    }[];
+  }[];
   nextNumber: number;
+  nextHookId: number;
 }
 
 export class Registry {
@@ -56,7 +73,9 @@ export class Registry {
       labels: [],
       issues: [],
       pulls: [],
+      hooks: [],
       nextNumber: 1,
+      nextHookId: 1,
     };
     this.pendingRepos.set(name, repo);
     return repo;
@@ -79,7 +98,9 @@ export class Registry {
       labels: [],
       issues: [],
       pulls: [],
+      hooks: [],
       nextNumber: 1,
+      nextHookId: 1,
     };
     this.repos.set(id, repo);
     return repo;

@@ -9,6 +9,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { registry } from './repos.ts';
 import { handleGitHttp } from './githttp.ts';
 import { handleRest } from './rest.ts';
+import { handleWebhooks } from './webhooks.ts';
 import { handleGraphQL } from './gql.ts';
 import { handleMcp } from './mcp.ts';
 import { sendJson } from './http-utils.ts';
@@ -40,6 +41,9 @@ export function createApp(): Server {
       const auth = req.headers['authorization'];
       if (auth !== `Bearer ${TOKEN}`) {
         sendJson(res, 401, { message: 'Requires authentication' });
+        return;
+      }
+      if (await handleWebhooks(req, res, TOKEN, registry)) {
         return;
       }
       if (await handleRest(req, res, path, method, registry, TOKEN)) {
