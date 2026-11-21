@@ -7,6 +7,8 @@
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { registry } from './repos.ts';
+import { orgRegistry, handleOrgs } from './orgs.ts';
+import { handleSearch } from './search.ts';
 import { handleGitHttp } from './githttp.ts';
 import { handleRest } from './rest.ts';
 import { handleWebhooks } from './webhooks.ts';
@@ -37,10 +39,16 @@ export function createApp(): Server {
       return;
     }
 
-    if (path.startsWith('/api/v3')) {
+    if (path.startsWith('/api/v3') || path.startsWith('/search')) {
       const auth = req.headers['authorization'];
       if (auth !== `Bearer ${TOKEN}`) {
         sendJson(res, 401, { message: 'Requires authentication' });
+        return;
+      }
+      if (await handleOrgs(req, res, TOKEN, orgRegistry, registry)) {
+        return;
+      }
+      if (await handleSearch(req, res, TOKEN, orgRegistry, registry)) {
         return;
       }
       if (await handleWebhooks(req, res, TOKEN, registry)) {
